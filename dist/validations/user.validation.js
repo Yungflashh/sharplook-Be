@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.userIdValidation = exports.updateUserStatusValidation = exports.getVendorsValidation = exports.getUsersValidation = exports.updateVendorProfileValidation = exports.becomeVendorValidation = exports.verifyWithdrawalPinValidation = exports.setWithdrawalPinValidation = exports.updatePreferencesValidation = exports.updateProfileValidation = void 0;
+exports.userIdValidation = exports.updateUserStatusValidation = exports.getVendorsValidation = exports.getUsersValidation = exports.getTopVendorsValidation = exports.updateVendorProfileValidation = exports.becomeVendorValidation = exports.verifyWithdrawalPinValidation = exports.setWithdrawalPinValidation = exports.updatePreferencesValidation = exports.updateProfileValidation = void 0;
 const express_validator_1 = require("express-validator");
 const types_1 = require("../types");
 /**
@@ -141,6 +141,28 @@ exports.updateVendorProfileValidation = [
         .isInt({ min: 1, max: 100 })
         .withMessage('Service radius must be between 1 and 100 km'),
     (0, express_validator_1.body)('availability').optional().isObject().withMessage('Availability must be an object'),
+];
+// Add this to your user.validation.ts file
+/**
+ * Get top vendors validation
+ */
+exports.getTopVendorsValidation = [
+    (0, express_validator_1.query)('limit')
+        .optional()
+        .isInt({ min: 1, max: 50 })
+        .withMessage('Limit must be between 1 and 50'),
+    (0, express_validator_1.query)('vendorType')
+        .optional()
+        .isIn(Object.values(types_1.VendorType))
+        .withMessage('Invalid vendor type'),
+    (0, express_validator_1.query)('category')
+        .optional()
+        .isMongoId()
+        .withMessage('Invalid category ID'),
+    (0, express_validator_1.query)('minRating')
+        .optional()
+        .isFloat({ min: 0, max: 5 })
+        .withMessage('Minimum rating must be between 0 and 5'),
 ];
 /**
  * Get users validation (admin)

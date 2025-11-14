@@ -145,6 +145,25 @@ class UserController {
             const result = await user_service_1.default.getVendors(filters, page, limit);
             return response_1.default.paginated(res, 'Vendors retrieved successfully', result.vendors, page, limit, result.total);
         });
+        this.getTopVendors = (0, error_1.asyncHandler)(async (req, res, _next) => {
+            const limit = parseInt(req.query.limit) || 10;
+            const filters = {
+                vendorType: req.query.vendorType,
+                category: req.query.category,
+                minRating: req.query.minRating ? parseFloat(req.query.minRating) : undefined,
+            };
+            // Remove undefined filters
+            Object.keys(filters).forEach(key => {
+                if (filters[key] === undefined) {
+                    delete filters[key];
+                }
+            });
+            const vendors = await user_service_1.default.getTopVendors(limit, filters);
+            return response_1.default.success(res, 'Top vendors retrieved successfully', {
+                vendors,
+                count: vendors.length,
+            });
+        });
         /**
          * Get user by ID (admin)
          * GET /api/v1/users/:userId

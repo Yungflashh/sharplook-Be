@@ -58,6 +58,12 @@ router.put('/vendor-profile', auth_1.authenticate, (0, validate_1.validate)(user
  */
 router.get('/stats', auth_1.authenticate, user_controller_1.default.getUserStats);
 /**
+ * @route   GET /api/v1/users/top-vendors
+ * @desc    Get top-rated vendors
+ * @access  Public (with optional auth)
+ */
+router.get('/top-vendors', auth_1.optionalAuth, (0, validate_1.validate)(user_validation_1.getTopVendorsValidation), user_controller_1.default.getTopVendors);
+/**
  * @route   GET /api/v1/users/vendors
  * @desc    Get vendors with filters
  * @access  Public (with optional auth)

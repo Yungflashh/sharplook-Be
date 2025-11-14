@@ -40,6 +40,36 @@ export declare enum PaymentStatus {
     ESCROWED = "escrowed",
     RELEASED = "released"
 }
+export interface TopVendorResponse {
+    _id: Types.ObjectId;
+    firstName: string;
+    lastName: string;
+    avatar?: string;
+    isOnline: boolean;
+    vendorProfile: {
+        businessName: string;
+        businessDescription?: string;
+        rating: number;
+        totalRatings: number;
+        completedBookings: number;
+        vendorType: VendorType;
+        serviceRadius?: number;
+        location?: {
+            type: 'Point';
+            coordinates: [number, number];
+            address: string;
+            city: string;
+            state: string;
+            country: string;
+        };
+        categories: Array<{
+            _id: Types.ObjectId;
+            name: string;
+            icon?: string;
+            slug: string;
+        }>;
+    };
+}
 export declare enum TransactionType {
     DEPOSIT = "deposit",
     WITHDRAWAL = "withdrawal",

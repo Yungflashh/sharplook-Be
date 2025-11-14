@@ -259,6 +259,35 @@ class UserService {
             totalPages: Math.ceil(total / limit),
         };
     }
+    async getTopVendors(limit = 10, filters) {
+        // Build query
+        const query = {
+            isVendor: true,
+            'vendorProfile.isVerified': true,
+            'vendorProfile.rating': { $gt: 0 },
+        };
+        if (filters?.vendorType) {
+            query['vendorProfile.vendorType'] = filters.vendorType;
+        }
+        if (filters?.category) {
+            query['vendorProfile.categories'] = mongoose_1.default.Types.ObjectId.createFromHexString(filters.category);
+        }
+        if (filters?.minRating) {
+            query['vendorProfile.rating'] = { $gte: filters.minRating };
+        }
+        const vendors = await User_1.default.find(query)
+            .select('firstName lastName avatar isOnline vendorProfile.businessName vendorProfile.businessDescription vendorProfile.rating vendorProfile.totalRatings vendorProfile.completedBookings vendorProfile.vendorType vendorProfile.location vendorProfile.categories vendorProfile.serviceRadius')
+            .populate('vendorProfile.categories', 'name icon slug')
+            .sort({
+            'vendorProfile.rating': -1,
+            'vendorProfile.totalRatings': -1,
+            'vendorProfile.completedBookings': -1,
+        })
+            .limit(limit)
+            .lean(); // Explicitly type the lean result
+        logger_1.default.info(`Retrieved ${vendors.length} top vendors`);
+        return vendors;
+    }
     /**
      * Update user status (admin)
      */

@@ -167,6 +167,33 @@ export const updateVendorProfileValidation = [
   body('availability').optional().isObject().withMessage('Availability must be an object'),
 ];
 
+// Add this to your user.validation.ts file
+
+/**
+ * Get top vendors validation
+ */
+export const getTopVendorsValidation = [
+  query('limit')
+    .optional()
+    .isInt({ min: 1, max: 50 })
+    .withMessage('Limit must be between 1 and 50'),
+
+  query('vendorType')
+    .optional()
+    .isIn(Object.values(VendorType))
+    .withMessage('Invalid vendor type'),
+
+  query('category')
+    .optional()
+    .isMongoId()
+    .withMessage('Invalid category ID'),
+
+  query('minRating')
+    .optional()
+    .isFloat({ min: 0, max: 5 })
+    .withMessage('Minimum rating must be between 0 and 5'),
+];
+
 /**
  * Get users validation (admin)
  */
@@ -253,3 +280,5 @@ export const updateUserStatusValidation = [
 export const userIdValidation = [
   param('userId').isMongoId().withMessage('Invalid user ID'),
 ];
+
+

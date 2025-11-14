@@ -23,6 +23,10 @@ export declare const becomeVendorValidation: import("express-validator").Validat
  */
 export declare const updateVendorProfileValidation: import("express-validator").ValidationChain[];
 /**
+ * Get top vendors validation
+ */
+export declare const getTopVendorsValidation: import("express-validator").ValidationChain[];
+/**
  * Get users validation (admin)
  */
 export declare const getUsersValidation: import("express-validator").ValidationChain[];

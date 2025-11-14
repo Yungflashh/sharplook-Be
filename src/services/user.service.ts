@@ -2,8 +2,11 @@ import User, { IUser } from '../models/User';
 import { NotFoundError, BadRequestError, ConflictError } from '../utils/errors';
 import { parsePaginationParams } from '../utils/helpers';
 import logger from '../utils/logger';
-import { VendorType, UserStatus } from '../types';
+import { VendorType, UserStatus, TopVendorResponse } from '../types';
 import mongoose from 'mongoose';
+
+
+
 
 class UserService {
   /**
@@ -391,6 +394,55 @@ class UserService {
       totalPages: Math.ceil(total / limit),
     };
   }
+
+
+ public async getTopVendors(
+  limit: number = 10,
+  filters?: {
+    vendorType?: VendorType;
+    category?: string;
+    minRating?: number;
+  }
+): Promise<TopVendorResponse[]> {  // Use the proper interface
+  // Build query
+  const query: any = {
+    isVendor: true,
+    'vendorProfile.isVerified': true,
+    'vendorProfile.rating': { $gt: 0 },
+  };
+
+  if (filters?.vendorType) {
+    query['vendorProfile.vendorType'] = filters.vendorType;
+  }
+
+  if (filters?.category) {
+    query['vendorProfile.categories'] = mongoose.Types.ObjectId.createFromHexString(
+      filters.category
+    );
+  }
+
+  if (filters?.minRating) {
+    query['vendorProfile.rating'] = { $gte: filters.minRating };
+  }
+
+  const vendors = await User.find(query)
+    .select(
+      'firstName lastName avatar isOnline vendorProfile.businessName vendorProfile.businessDescription vendorProfile.rating vendorProfile.totalRatings vendorProfile.completedBookings vendorProfile.vendorType vendorProfile.location vendorProfile.categories vendorProfile.serviceRadius'
+    )
+    .populate('vendorProfile.categories', 'name icon slug')
+    .sort({
+      'vendorProfile.rating': -1,
+      'vendorProfile.totalRatings': -1,
+      'vendorProfile.completedBookings': -1,
+    })
+    .limit(limit)
+    .lean<TopVendorResponse[]>();  // Explicitly type the lean result
+
+  logger.info(`Retrieved ${vendors.length} top vendors`);
+
+  return vendors;
+}
+
 
   /**
    * Update user status (admin)

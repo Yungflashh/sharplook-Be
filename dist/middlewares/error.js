@@ -79,12 +79,12 @@ const errorHandler = (err, _req, res, _next) => {
     err.statusCode = err.statusCode || 500;
     err.status = err.status || 'error';
     if (config_1.default.env === 'development') {
+        console.error("🔥 REAL ERROR:", err);
         sendErrorDev(err, res);
     }
     else {
         let error = { ...err };
         error.message = err.message;
-        // Handle specific MongoDB errors
         if (err.name === 'CastError')
             error = handleCastError(err);
         if (err.code === 11000)

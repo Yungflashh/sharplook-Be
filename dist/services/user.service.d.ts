@@ -1,5 +1,5 @@
 import { IUser } from '../models/User';
-import { VendorType, UserStatus } from '../types';
+import { VendorType, UserStatus, TopVendorResponse } from '../types';
 declare class UserService {
     /**
      * Get user by ID
@@ -104,6 +104,11 @@ declare class UserService {
         page: number;
         totalPages: number;
     }>;
+    getTopVendors(limit?: number, filters?: {
+        vendorType?: VendorType;
+        category?: string;
+        minRating?: number;
+    }): Promise<TopVendorResponse[]>;
     /**
      * Update user status (admin)
      */

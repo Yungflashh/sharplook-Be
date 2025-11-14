@@ -207,6 +207,33 @@ class UserController {
     }
   );
 
+
+  public getTopVendors = asyncHandler(
+  async (req: AuthRequest, res: Response, _next: NextFunction) => {
+    const limit = parseInt(req.query.limit as string) || 10;
+    
+    const filters: any = {
+      vendorType: req.query.vendorType as string,
+      category: req.query.category as string,
+      minRating: req.query.minRating ? parseFloat(req.query.minRating as string) : undefined,
+    };
+
+    // Remove undefined filters
+    Object.keys(filters).forEach(key => {
+      if (filters[key] === undefined) {
+        delete filters[key];
+      }
+    });
+
+    const vendors = await userService.getTopVendors(limit, filters);
+
+    return ResponseHandler.success(res, 'Top vendors retrieved successfully', {
+      vendors,
+      count: vendors.length,
+    });
+  }
+);
+
   /**
    * Get user by ID (admin)
    * GET /api/v1/users/:userId

@@ -16,6 +16,7 @@ import {
   updateVendorProfileValidation,
   getUsersValidation,
   getVendorsValidation,
+  getTopVendorsValidation,
   updateUserStatusValidation,
   userIdValidation,
 } from '../validations/user.validation';
@@ -107,6 +108,18 @@ router.put(
  * @access  Private
  */
 router.get('/stats', authenticate, userController.getUserStats);
+
+/**
+ * @route   GET /api/v1/users/top-vendors
+ * @desc    Get top-rated vendors
+ * @access  Public (with optional auth)
+ */
+router.get(
+  '/top-vendors',
+  optionalAuth,
+  validate(getTopVendorsValidation),
+  userController.getTopVendors
+);
 
 /**
  * @route   GET /api/v1/users/vendors
