@@ -1,6 +1,6 @@
 import { EmailTemplate } from '../types';
 declare class EmailService {
-    private transporter;
+    private resend;
     private templates;
     constructor();
     /**
@@ -12,21 +12,25 @@ declare class EmailService {
      */
     private getTemplate;
     /**
-     * Get default template HTML
+     * Default fallback template
      */
     private getDefaultTemplate;
     /**
-     * Send email
+     * Send email using Resend
      */
     sendEmail(to: string, subject: string, template: EmailTemplate, data: any): Promise<boolean>;
+    /**
+     * Simulate transport verify (Resend has no verify())
+     */
+    verifyConnection(): Promise<boolean>;
     /**
      * Send welcome email
      */
     sendWelcomeEmail(email: string, firstName: string, verificationToken?: string): Promise<boolean>;
     /**
-     * Send email verification
+     * Send verification email
      */
-    sendVerificationEmail(email: string, firstName: string, verificationToken: string): Promise<boolean>;
+    sendVerificationEmail(email: string, firstName: string, otp: string): Promise<boolean>;
     /**
      * Send password reset email
      */
@@ -36,13 +40,9 @@ declare class EmailService {
      */
     sendLoginNotification(email: string, firstName: string, ipAddress: string, userAgent: string): Promise<boolean>;
     /**
-     * Send account verification success email
+     * Send email verification success
      */
     sendVerificationSuccessEmail(email: string, firstName: string): Promise<boolean>;
-    /**
-     * Verify email configuration
-     */
-    verifyConnection(): Promise<boolean>;
 }
 declare const _default: EmailService;
 export default _default;

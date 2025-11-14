@@ -22,11 +22,11 @@ const config = {
         refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
     },
     email: {
-        host: process.env.SMTP_HOST || 'smtp.gmail.com',
-        port: parseInt(process.env.SMTP_PORT || '587', 10),
-        secure: process.env.SMTP_SECURE === 'true',
-        user: process.env.SMTP_USER || '',
-        password: process.env.SMTP_PASSWORD || '',
+        host: process.env.RESEND_HOST || 'api.resend.com', // Not required but kept for structure
+        port: parseInt(process.env.RESEND_PORT || '443', 10), // Not required
+        secure: true, // Always HTTPS for Resend
+        user: process.env.RESEND_API_KEY || '',
+        password: process.env.RESEND_API_KEY || '', // Not used but kept for structure consistency
         from: process.env.EMAIL_FROM || 'SharpLook <noreply@sharplook.com>',
     },
     paystack: {

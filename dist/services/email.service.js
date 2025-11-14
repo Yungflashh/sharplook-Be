@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const nodemailer_1 = __importDefault(require("nodemailer"));
+const resend_1 = require("resend");
 const handlebars_1 = __importDefault(require("handlebars"));
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
@@ -12,15 +12,7 @@ const logger_1 = __importDefault(require("../utils/logger"));
 const types_1 = require("../types");
 class EmailService {
     constructor() {
-        this.transporter = nodemailer_1.default.createTransport({
-            host: config_1.default.email.host,
-            port: config_1.default.email.port,
-            secure: config_1.default.email.secure,
-            auth: {
-                user: config_1.default.email.user,
-                pass: config_1.default.email.password,
-            },
-        });
+        this.resend = new resend_1.Resend(config_1.default.email.user); // API KEY
         this.templates = new Map();
         this.loadTemplates();
     }
@@ -29,7 +21,6 @@ class EmailService {
      */
     loadTemplates() {
         const templatesDir = path_1.default.join(__dirname, '../templates/email');
-        // Create templates directory if it doesn't exist
         if (!fs_1.default.existsSync(templatesDir)) {
             fs_1.default.mkdirSync(templatesDir, { recursive: true });
         }
@@ -43,19 +34,18 @@ class EmailService {
         }
         const templatePath = path_1.default.join(__dirname, '../templates/email', `${templateName}.hbs`);
         if (fs_1.default.existsSync(templatePath)) {
-            const templateSource = fs_1.default.readFileSync(templatePath, 'utf-8');
-            const template = handlebars_1.default.compile(templateSource);
-            this.templates.set(templateName, template);
-            return template;
+            const file = fs_1.default.readFileSync(templatePath, 'utf-8');
+            const compiled = handlebars_1.default.compile(file);
+            this.templates.set(templateName, compiled);
+            return compiled;
         }
-        // Return default template if file doesn't exist
         return handlebars_1.default.compile(this.getDefaultTemplate(templateName));
     }
     /**
-     * Get default template HTML
+     * Default fallback template
      */
     getDefaultTemplate(_templateName) {
-        const baseTemplate = `
+        return `
       <!DOCTYPE html>
       <html>
         <head>
@@ -77,7 +67,7 @@ class EmailService {
               <h1>{{appName}}</h1>
             </div>
             <div class="content">
-              {{body}}
+              {{{body}}}
             </div>
             <div class="footer">
               <p>© {{year}} {{appName}}. All rights reserved.</p>
@@ -87,10 +77,9 @@ class EmailService {
         </body>
       </html>
     `;
-        return baseTemplate;
     }
     /**
-     * Send email
+     * Send email using Resend
      */
     async sendEmail(to, subject, template, data) {
         try {
@@ -102,19 +91,34 @@ class EmailService {
                 year: new Date().getFullYear(),
                 subject,
             });
-            await this.transporter.sendMail({
+            const result = await this.resend.emails.send({
                 from: config_1.default.email.from,
                 to,
                 subject,
                 html,
             });
+            if (result.error) {
+                logger_1.default.error('Resend Error:', result.error);
+                return false;
+            }
             logger_1.default.info(`Email sent successfully to ${to}: ${subject}`);
             return true;
         }
         catch (error) {
-            logger_1.default.error('Error sending email:', error);
+            logger_1.default.error('Error sending email with Resend:', error);
             return false;
         }
+    }
+    /**
+     * Simulate transport verify (Resend has no verify())
+     */
+    async verifyConnection() {
+        if (!config_1.default.email.user) {
+            logger_1.default.error('Missing Resend API key');
+            return false;
+        }
+        logger_1.default.info('Resend email service ready.');
+        return true;
     }
     /**
      * Send welcome email
@@ -127,41 +131,45 @@ class EmailService {
             firstName,
             verificationUrl,
             body: `
-        <h2>Welcome aboard, ${firstName}! 🎉</h2>
-        <p>We're thrilled to have you join the SharpLook community.</p>
-        ${verificationUrl
+          <h2>Welcome aboard, ${firstName}! 🎉</h2>
+          <p>We're thrilled to have you join SharpLook!</p>
+          ${verificationUrl
                 ? `
-          <p>To get started, please verify your email address by clicking the button below:</p>
-          <a href="${verificationUrl}" class="button">Verify Email</a>
-          <p>If the button doesn't work, copy and paste this link into your browser:</p>
-          <p><a href="${verificationUrl}">${verificationUrl}</a></p>
-          <p><small>This link will expire in 24 hours.</small></p>
-        `
+              <p>Click below to verify your email:</p>
+              <a href="${verificationUrl}" class="button">Verify Email</a>
+              <p>If the button doesn’t work, use this link:</p>
+              <p><a href="${verificationUrl}">${verificationUrl}</a></p>
+              <p><small>This link expires in 24 hours.</small></p>
+            `
                 : ''}
-        <p>If you didn't create this account, please ignore this email.</p>
-      `,
+          <p>If you didn’t create this account, you can ignore this message.</p>
+        `,
         });
     }
     /**
-     * Send email verification
+     * Send verification email
      */
-    async sendVerificationEmail(email, firstName, verificationToken) {
-        const verificationUrl = `${config_1.default.urls.frontend}/verify-email?token=${verificationToken}`;
+    async sendVerificationEmail(email, firstName, otp) {
         return this.sendEmail(email, 'Verify Your Email Address', types_1.EmailTemplate.VERIFICATION, {
             firstName,
-            verificationUrl,
+            otp,
             body: `
-         <h2>Verify Your Email Address</h2>
-<p>Hi ${firstName},</p>
-<p>Please use the following One-Time Password (OTP) to verify your email address:</p>
+          <h2>Email Verification</h2>
+          <p>Hi ${firstName},</p>
+          <p>Your One-Time Password (OTP) is:</p>
 
-<div style="font-size: 24px; font-weight: bold; margin: 20px 0; padding: 10px; background-color: #f0f0f0; text-align: center; border-radius: 5px;">
-  ${verificationUrl}
-</div>
+          <div style="
+            font-size: 28px;
+            font-weight: bold;
+            text-align: center;
+            padding: 12px;
+            background: #f0f0f0;
+            border-radius: 6px;
+            margin: 20px 0;">
+            ${otp}
+          </div>
 
-<p>Enter this code in the app to complete your verification.</p>
-<p><small>This OTP will expire in 10 minutes.</small></p>
-
+          <p>This code expires in 10 minutes.</p>
         `,
         });
     }
@@ -174,42 +182,45 @@ class EmailService {
             firstName,
             resetUrl,
             body: `
-        <h2>Reset Your Password</h2>
-        <p>Hi ${firstName},</p>
-        <p>We received a request to reset your password. Click the button below to set a new password:</p>
-        <a href="${resetUrl}" class="button">Reset Password</a>
-        <p>If the button doesn't work, copy and paste this link into your browser:</p>
-        <p><a href="${resetUrl}">${resetUrl}</a></p>
-        <p><small>This link will expire in 1 hour.</small></p>
-        <p>If you didn't request a password reset, please ignore this email and your password will remain unchanged.</p>
-      `,
+          <h2>Reset Your Password</h2>
+          <p>Hi ${firstName},</p>
+          <p>Click below to reset your password:</p>
+          <a href="${resetUrl}" class="button">Reset Password</a>
+
+          <p>If the button doesn't work, open this link:</p>
+          <p><a href="${resetUrl}">${resetUrl}</a></p>
+
+          <p><small>This link expires in 1 hour.</small></p>
+        `,
         });
     }
     /**
      * Send login notification email
      */
     async sendLoginNotification(email, firstName, ipAddress, userAgent) {
-        return this.sendEmail(email, 'New Login to Your Account', types_1.EmailTemplate.LOGIN, {
+        return this.sendEmail(email, 'New Login Alert', types_1.EmailTemplate.LOGIN, {
             firstName,
             ipAddress,
             userAgent,
             timestamp: new Date().toLocaleString(),
             body: `
-        <h2>New Login Detected</h2>
-        <p>Hi ${firstName},</p>
-        <p>We detected a new login to your account:</p>
-        <ul>
-          <li><strong>Time:</strong> ${new Date().toLocaleString()}</li>
-          <li><strong>IP Address:</strong> ${ipAddress}</li>
-          <li><strong>Device:</strong> ${userAgent}</li>
-        </ul>
-        <p>If this was you, you can safely ignore this email.</p>
-        <p>If you don't recognize this activity, please secure your account immediately by changing your password.</p>
-      `,
+          <h2>New Login Detected</h2>
+          <p>Hi ${firstName},</p>
+          <p>A login occurred on your account:</p>
+
+          <ul>
+            <li><strong>Time:</strong> ${new Date().toLocaleString()}</li>
+            <li><strong>IP Address:</strong> ${ipAddress}</li>
+            <li><strong>Device:</strong> ${userAgent}</li>
+          </ul>
+
+          <p>If this was you, no action is needed.</p>
+          <p>If not, please change your password immediately.</p>
+        `,
         });
     }
     /**
-     * Send account verification success email
+     * Send email verification success
      */
     async sendVerificationSuccessEmail(email, firstName) {
         return this.sendEmail(email, 'Email Verified Successfully', types_1.EmailTemplate.VERIFICATION, {
@@ -217,24 +228,10 @@ class EmailService {
             body: `
           <h2>Email Verified! ✅</h2>
           <p>Hi ${firstName},</p>
-          <p>Your email address has been successfully verified. You now have full access to all SharpLook features.</p>
+          <p>Your email address is now verified. Enjoy full access!</p>
           <a href="${config_1.default.urls.frontend}/dashboard" class="button">Go to Dashboard</a>
         `,
         });
-    }
-    /**
-     * Verify email configuration
-     */
-    async verifyConnection() {
-        try {
-            await this.transporter.verify();
-            logger_1.default.info('Email service is ready');
-            return true;
-        }
-        catch (error) {
-            logger_1.default.error('Email service verification failed:', error);
-            return false;
-        }
     }
 }
 exports.default = new EmailService();
