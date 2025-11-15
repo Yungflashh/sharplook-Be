@@ -9,6 +9,32 @@ const auth_1 = require("../middlewares/auth");
 const validate_1 = require("../middlewares/validate");
 const service_validation_1 = require("../validations/service.validation");
 const router = (0, express_1.Router)();
+// ==================== ADMIN ROUTES ====================
+/**
+ * @route   GET /api/v1/services/admin/stats
+ * @desc    Get service approval statistics
+ * @access  Private (Admin)
+ */
+router.get('/admin/stats', auth_1.authenticate, auth_1.requireAdmin, service_controller_1.default.getApprovalStats);
+/**
+ * @route   GET /api/v1/services/admin/pending
+ * @desc    Get all pending services
+ * @access  Private (Admin)
+ */
+router.get('/admin/pending', auth_1.authenticate, auth_1.requireAdmin, validate_1.validatePagination, service_controller_1.default.getPendingServices);
+/**
+ * @route   POST /api/v1/services/:serviceId/approve
+ * @desc    Approve a service
+ * @access  Private (Admin)
+ */
+router.post('/:serviceId/approve', auth_1.authenticate, auth_1.requireAdmin, (0, validate_1.validate)([...service_validation_1.serviceIdValidation, ...service_validation_1.approveServiceValidation]), service_controller_1.default.approveService);
+/**
+ * @route   POST /api/v1/services/:serviceId/reject
+ * @desc    Reject a service
+ * @access  Private (Admin)
+ */
+router.post('/:serviceId/reject', auth_1.authenticate, auth_1.requireAdmin, (0, validate_1.validate)([...service_validation_1.serviceIdValidation, ...service_validation_1.rejectServiceValidation]), service_controller_1.default.rejectService);
+// ==================== PUBLIC ROUTES ====================
 /**
  * @route   GET /api/v1/services/trending
  * @desc    Get trending services

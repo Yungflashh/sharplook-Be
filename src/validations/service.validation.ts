@@ -167,6 +167,12 @@ export const getServicesValidation = [
     .withMessage('Sort order must be asc or desc'),
 
   query('search').optional().trim().isLength({ min: 1 }),
+
+  // Admin-only filter
+  query('approvalStatus')
+    .optional()
+    .isIn(['pending', 'approved', 'rejected'])
+    .withMessage('Approval status must be pending, approved, or rejected'),
 ];
 
 /**
@@ -213,4 +219,29 @@ export const respondToReviewValidation = [
  */
 export const reviewIdValidation = [
   param('reviewId').isMongoId().withMessage('Invalid review ID'),
+];
+
+// ==================== ADMIN APPROVAL VALIDATIONS ====================
+
+/**
+ * Approve service validation
+ */
+export const approveServiceValidation = [
+  body('notes')
+    .optional()
+    .trim()
+    .isLength({ max: 500 })
+    .withMessage('Approval notes cannot exceed 500 characters'),
+];
+
+/**
+ * Reject service validation
+ */
+export const rejectServiceValidation = [
+  body('reason')
+    .trim()
+    .notEmpty()
+    .withMessage('Rejection reason is required')
+    .isLength({ min: 10, max: 500 })
+    .withMessage('Rejection reason must be between 10 and 500 characters'),
 ];

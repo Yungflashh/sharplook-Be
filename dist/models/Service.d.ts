@@ -35,6 +35,13 @@ export interface IService extends Document {
         averageRating: number;
         totalReviews: number;
     };
+    approvalStatus: 'pending' | 'approved' | 'rejected';
+    approvedBy?: mongoose.Types.ObjectId;
+    approvedAt?: Date;
+    approvalNotes?: string;
+    rejectedBy?: mongoose.Types.ObjectId;
+    rejectedAt?: Date;
+    rejectionReason?: string;
     isDeleted: boolean;
     deletedAt?: Date;
     createdAt: Date;

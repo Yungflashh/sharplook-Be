@@ -65,6 +65,26 @@ declare class ServiceController {
      * GET /api/v1/services/popular/:categoryId
      */
     getPopularByCategory: (req: import("express").Request, res: Response, next: NextFunction) => void;
+    /**
+     * Get pending services (Admin)
+     * GET /api/v1/services/admin/pending
+     */
+    getPendingServices: (req: import("express").Request, res: Response, next: NextFunction) => void;
+    /**
+     * Get approval statistics (Admin)
+     * GET /api/v1/services/admin/stats
+     */
+    getApprovalStats: (req: import("express").Request, res: Response, next: NextFunction) => void;
+    /**
+     * Approve service (Admin)
+     * POST /api/v1/services/:serviceId/approve
+     */
+    approveService: (req: import("express").Request, res: Response, next: NextFunction) => void;
+    /**
+     * Reject service (Admin)
+     * POST /api/v1/services/:serviceId/reject
+     */
+    rejectService: (req: import("express").Request, res: Response, next: NextFunction) => void;
 }
 declare const _default: ServiceController;
 export default _default;

@@ -53,8 +53,10 @@ class ServiceService {
             vendor: vendorId,
             ...data,
             slug,
+            isActive: false,
+            approvalStatus: 'pending',
         });
-        logger_1.default.info(`Service created: ${service.name} by vendor ${vendorId}`);
+        logger_1.default.info(`Service created: ${service.name} by vendor ${vendorId} - Pending approval`);
         return service;
     }
     /**
@@ -63,7 +65,21 @@ class ServiceService {
     async getAllServices(filters, page = 1, limit = 20, sortBy = 'createdAt', sortOrder = 'desc') {
         const { skip } = (0, helpers_1.parsePaginationParams)(page, limit);
         // Build query
-        const query = { isActive: filters?.isActive !== false };
+        const query = {};
+        // For public-facing queries (no vendor or approval status filter), only show approved and active
+        if (!filters?.approvalStatus && !filters?.vendor) {
+            query.isActive = true;
+            query.approvalStatus = 'approved';
+        }
+        else {
+            // For admin or vendor queries, allow filtering
+            if (filters?.isActive !== undefined) {
+                query.isActive = filters.isActive;
+            }
+            if (filters?.approvalStatus) {
+                query.approvalStatus = filters.approvalStatus;
+            }
+        }
         if (filters?.vendor) {
             query.vendor = filters.vendor;
         }
@@ -223,6 +239,14 @@ class ServiceService {
                 throw new errors_1.NotFoundError('Category not found');
             }
         }
+        // If service was previously approved and significant changes are made, reset to pending
+        const significantFields = ['name', 'description', 'category', 'basePrice', 'images'];
+        const hasSignificantChanges = Object.keys(updates).some(key => significantFields.includes(key));
+        if (hasSignificantChanges && service.approvalStatus === 'approved') {
+            service.approvalStatus = 'pending';
+            service.isActive = false;
+            logger_1.default.info(`Service ${service.name} reset to pending approval due to significant changes`);
+        }
         // Update fields
         Object.assign(service, updates);
         await service.save();
@@ -259,6 +283,10 @@ class ServiceService {
         if (service.vendor.toString() !== vendorId) {
             throw new errors_1.ForbiddenError('You can only update your own services');
         }
+        // Only allow toggling if service is approved
+        if (service.approvalStatus !== 'approved') {
+            throw new errors_1.BadRequestError('Service must be approved before it can be activated');
+        }
         service.isActive = !service.isActive;
         await service.save();
         logger_1.default.info(`Service status toggled: ${service.name} - ${service.isActive}`);
@@ -269,6 +297,87 @@ class ServiceService {
      */
     async getVendorServices(vendorId, page = 1, limit = 20) {
         return this.getAllServices({ vendor: vendorId }, page, limit);
+    }
+    /**
+     * ADMIN: Approve a service
+     */
+    async approveService(serviceId, adminId, notes) {
+        // Verify admin
+        const admin = await User_1.default.findById(adminId);
+        if (!admin || admin.role !== 'admin') {
+            throw new errors_1.UnauthorizedError('Only admins can approve services');
+        }
+        const service = await Service_1.default.findById(serviceId)
+            .populate('vendor', 'firstName lastName email');
+        if (!service) {
+            throw new errors_1.NotFoundError('Service not found');
+        }
+        if (service.approvalStatus === 'approved') {
+            throw new errors_1.BadRequestError('Service is already approved');
+        }
+        service.approvalStatus = 'approved';
+        service.isActive = true;
+        service.approvedBy = admin._id;
+        service.approvedAt = new Date();
+        if (notes) {
+            service.approvalNotes = notes;
+        }
+        await service.save();
+        logger_1.default.info(`Service approved: ${service.name} by admin ${adminId}`);
+        // TODO: Send notification to vendor about approval
+        // await NotificationService.sendServiceApprovalNotification(service.vendor, service);
+        return service;
+    }
+    /**
+     * ADMIN: Reject a service
+     */
+    async rejectService(serviceId, adminId, reason) {
+        // Verify admin
+        const admin = await User_1.default.findById(adminId);
+        if (!admin || admin.role !== 'admin') {
+            throw new errors_1.UnauthorizedError('Only admins can reject services');
+        }
+        if (!reason || reason.trim().length === 0) {
+            throw new errors_1.BadRequestError('Rejection reason is required');
+        }
+        const service = await Service_1.default.findById(serviceId)
+            .populate('vendor', 'firstName lastName email');
+        if (!service) {
+            throw new errors_1.NotFoundError('Service not found');
+        }
+        service.approvalStatus = 'rejected';
+        service.isActive = false;
+        service.rejectedBy = admin._id;
+        service.rejectedAt = new Date();
+        service.rejectionReason = reason;
+        await service.save();
+        logger_1.default.info(`Service rejected: ${service.name} by admin ${adminId} - Reason: ${reason}`);
+        // TODO: Send notification to vendor about rejection
+        // await NotificationService.sendServiceRejectionNotification(service.vendor, service, reason);
+        return service;
+    }
+    /**
+     * ADMIN: Get all pending services for approval
+     */
+    async getPendingServices(page = 1, limit = 20) {
+        return this.getAllServices({ approvalStatus: 'pending' }, page, limit, 'createdAt', 'asc');
+    }
+    /**
+     * ADMIN: Get service approval statistics
+     */
+    async getApprovalStats() {
+        const [pending, approved, rejected, total] = await Promise.all([
+            Service_1.default.countDocuments({ approvalStatus: 'pending', isDeleted: false }),
+            Service_1.default.countDocuments({ approvalStatus: 'approved', isDeleted: false }),
+            Service_1.default.countDocuments({ approvalStatus: 'rejected', isDeleted: false }),
+            Service_1.default.countDocuments({ isDeleted: false }),
+        ]);
+        return {
+            pending,
+            approved,
+            rejected,
+            total,
+        };
     }
     /**
      * Add review to service
@@ -339,7 +448,10 @@ class ServiceService {
      * Get trending services
      */
     async getTrendingServices(limit = 10) {
-        const services = await Service_1.default.find({ isActive: true })
+        const services = await Service_1.default.find({
+            isActive: true,
+            approvalStatus: 'approved'
+        })
             .populate('vendor', 'firstName lastName vendorProfile.businessName vendorProfile.rating')
             .populate('category', 'name slug icon')
             .sort({ 'metadata.bookings': -1, 'metadata.averageRating': -1 })
@@ -350,7 +462,11 @@ class ServiceService {
      * Get popular services by category
      */
     async getPopularByCategory(categoryId, limit = 5) {
-        const services = await Service_1.default.find({ category: categoryId, isActive: true })
+        const services = await Service_1.default.find({
+            category: categoryId,
+            isActive: true,
+            approvalStatus: 'approved'
+        })
             .populate('vendor', 'firstName lastName vendorProfile.businessName')
             .sort({ 'metadata.averageRating': -1, 'metadata.bookings': -1 })
             .limit(limit);

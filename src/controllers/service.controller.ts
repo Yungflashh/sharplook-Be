@@ -15,7 +15,7 @@ class ServiceController {
 
       const service = await serviceService.createService(vendorId, req.body);
 
-      return ResponseHandler.created(res, 'Service created successfully', {
+      return ResponseHandler.created(res, 'Service created successfully and pending approval', {
         service,
       });
     }
@@ -42,6 +42,11 @@ class ServiceController {
         search: req.query.search as string,
         isActive: req.query.isActive === 'false' ? false : undefined,
       };
+
+      // Admin can filter by approval status
+      if (req.query.approvalStatus && req.user?.role === 'admin') {
+        filters.approvalStatus = req.query.approvalStatus as 'pending' | 'approved' | 'rejected';
+      }
 
       // Add location filter if coordinates provided
       if (req.query.latitude && req.query.longitude) {
@@ -273,6 +278,78 @@ class ServiceController {
 
       return ResponseHandler.success(res, 'Popular services retrieved successfully', {
         services,
+      });
+    }
+  );
+
+  // ==================== ADMIN ENDPOINTS ====================
+
+  /**
+   * Get pending services (Admin)
+   * GET /api/v1/services/admin/pending
+   */
+  public getPendingServices = asyncHandler(
+    async (req: AuthRequest, res: Response, _next: NextFunction) => {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+
+      const result = await serviceService.getPendingServices(page, limit);
+
+      return ResponseHandler.paginated(
+        res,
+        'Pending services retrieved successfully',
+        result.services,
+        page,
+        limit,
+        result.total
+      );
+    }
+  );
+
+  /**
+   * Get approval statistics (Admin)
+   * GET /api/v1/services/admin/stats
+   */
+  public getApprovalStats = asyncHandler(
+    async (_req: AuthRequest, res: Response, _next: NextFunction) => {
+      const stats = await serviceService.getApprovalStats();
+
+      return ResponseHandler.success(res, 'Approval statistics retrieved successfully', stats);
+    }
+  );
+
+  /**
+   * Approve service (Admin)
+   * POST /api/v1/services/:serviceId/approve
+   */
+  public approveService = asyncHandler(
+    async (req: AuthRequest, res: Response, _next: NextFunction) => {
+      const { serviceId } = req.params;
+      const adminId = req.user!.id;
+      const { notes } = req.body;
+
+      const service = await serviceService.approveService(serviceId, adminId, notes);
+
+      return ResponseHandler.success(res, 'Service approved successfully', {
+        service,
+      });
+    }
+  );
+
+  /**
+   * Reject service (Admin)
+   * POST /api/v1/services/:serviceId/reject
+   */
+  public rejectService = asyncHandler(
+    async (req: AuthRequest, res: Response, _next: NextFunction) => {
+      const { serviceId } = req.params;
+      const adminId = req.user!.id;
+      const { reason } = req.body;
+
+      const service = await serviceService.rejectService(serviceId, adminId, reason);
+
+      return ResponseHandler.success(res, 'Service rejected successfully', {
+        service,
       });
     }
   );

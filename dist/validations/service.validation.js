@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.reviewIdValidation = exports.respondToReviewValidation = exports.addReviewValidation = exports.getServicesValidation = exports.serviceSlugValidation = exports.serviceIdValidation = exports.updateServiceValidation = exports.createServiceValidation = void 0;
+exports.rejectServiceValidation = exports.approveServiceValidation = exports.reviewIdValidation = exports.respondToReviewValidation = exports.addReviewValidation = exports.getServicesValidation = exports.serviceSlugValidation = exports.serviceIdValidation = exports.updateServiceValidation = exports.createServiceValidation = void 0;
 const express_validator_1 = require("express-validator");
 /**
  * Create service validation
@@ -130,6 +130,11 @@ exports.getServicesValidation = [
         .isIn(['asc', 'desc'])
         .withMessage('Sort order must be asc or desc'),
     (0, express_validator_1.query)('search').optional().trim().isLength({ min: 1 }),
+    // Admin-only filter
+    (0, express_validator_1.query)('approvalStatus')
+        .optional()
+        .isIn(['pending', 'approved', 'rejected'])
+        .withMessage('Approval status must be pending, approved, or rejected'),
 ];
 /**
  * Add review validation
@@ -169,5 +174,27 @@ exports.respondToReviewValidation = [
  */
 exports.reviewIdValidation = [
     (0, express_validator_1.param)('reviewId').isMongoId().withMessage('Invalid review ID'),
+];
+// ==================== ADMIN APPROVAL VALIDATIONS ====================
+/**
+ * Approve service validation
+ */
+exports.approveServiceValidation = [
+    (0, express_validator_1.body)('notes')
+        .optional()
+        .trim()
+        .isLength({ max: 500 })
+        .withMessage('Approval notes cannot exceed 500 characters'),
+];
+/**
+ * Reject service validation
+ */
+exports.rejectServiceValidation = [
+    (0, express_validator_1.body)('reason')
+        .trim()
+        .notEmpty()
+        .withMessage('Rejection reason is required')
+        .isLength({ min: 10, max: 500 })
+        .withMessage('Rejection reason must be between 10 and 500 characters'),
 ];
 //# sourceMappingURL=service.validation.js.map

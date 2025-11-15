@@ -15,7 +15,7 @@ class ServiceController {
         this.createService = (0, error_1.asyncHandler)(async (req, res, _next) => {
             const vendorId = req.user.id;
             const service = await service_service_1.default.createService(vendorId, req.body);
-            return response_1.default.created(res, 'Service created successfully', {
+            return response_1.default.created(res, 'Service created successfully and pending approval', {
                 service,
             });
         });
@@ -38,6 +38,10 @@ class ServiceController {
                 search: req.query.search,
                 isActive: req.query.isActive === 'false' ? false : undefined,
             };
+            // Admin can filter by approval status
+            if (req.query.approvalStatus && req.user?.role === 'admin') {
+                filters.approvalStatus = req.query.approvalStatus;
+            }
             // Add location filter if coordinates provided
             if (req.query.latitude && req.query.longitude) {
                 filters.location = {
@@ -184,6 +188,51 @@ class ServiceController {
             const services = await service_service_1.default.getPopularByCategory(categoryId, limit);
             return response_1.default.success(res, 'Popular services retrieved successfully', {
                 services,
+            });
+        });
+        // ==================== ADMIN ENDPOINTS ====================
+        /**
+         * Get pending services (Admin)
+         * GET /api/v1/services/admin/pending
+         */
+        this.getPendingServices = (0, error_1.asyncHandler)(async (req, res, _next) => {
+            const page = parseInt(req.query.page) || 1;
+            const limit = parseInt(req.query.limit) || 20;
+            const result = await service_service_1.default.getPendingServices(page, limit);
+            return response_1.default.paginated(res, 'Pending services retrieved successfully', result.services, page, limit, result.total);
+        });
+        /**
+         * Get approval statistics (Admin)
+         * GET /api/v1/services/admin/stats
+         */
+        this.getApprovalStats = (0, error_1.asyncHandler)(async (_req, res, _next) => {
+            const stats = await service_service_1.default.getApprovalStats();
+            return response_1.default.success(res, 'Approval statistics retrieved successfully', stats);
+        });
+        /**
+         * Approve service (Admin)
+         * POST /api/v1/services/:serviceId/approve
+         */
+        this.approveService = (0, error_1.asyncHandler)(async (req, res, _next) => {
+            const { serviceId } = req.params;
+            const adminId = req.user.id;
+            const { notes } = req.body;
+            const service = await service_service_1.default.approveService(serviceId, adminId, notes);
+            return response_1.default.success(res, 'Service approved successfully', {
+                service,
+            });
+        });
+        /**
+         * Reject service (Admin)
+         * POST /api/v1/services/:serviceId/reject
+         */
+        this.rejectService = (0, error_1.asyncHandler)(async (req, res, _next) => {
+            const { serviceId } = req.params;
+            const adminId = req.user.id;
+            const { reason } = req.body;
+            const service = await service_service_1.default.rejectService(serviceId, adminId, reason);
+            return response_1.default.success(res, 'Service rejected successfully', {
+                service,
             });
         });
     }

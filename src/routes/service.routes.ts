@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import serviceController from '../controllers/service.controller';
-import { authenticate, requireVendor, optionalAuth } from '../middlewares/auth';
+import { authenticate, requireVendor, requireAdmin, optionalAuth } from '../middlewares/auth';
 import { validate, validatePagination } from '../middlewares/validate';
 import {
   createServiceValidation,
@@ -11,9 +11,66 @@ import {
   addReviewValidation,
   respondToReviewValidation,
   reviewIdValidation,
+  approveServiceValidation,
+  rejectServiceValidation,
 } from '../validations/service.validation';
 
 const router = Router();
+
+// ==================== ADMIN ROUTES ====================
+
+/**
+ * @route   GET /api/v1/services/admin/stats
+ * @desc    Get service approval statistics
+ * @access  Private (Admin)
+ */
+router.get(
+  '/admin/stats',
+  authenticate,
+  requireAdmin,
+  serviceController.getApprovalStats
+);
+
+/**
+ * @route   GET /api/v1/services/admin/pending
+ * @desc    Get all pending services
+ * @access  Private (Admin)
+ */
+router.get(
+  '/admin/pending',
+  authenticate,
+  requireAdmin,
+  validatePagination,
+  serviceController.getPendingServices
+);
+
+/**
+ * @route   POST /api/v1/services/:serviceId/approve
+ * @desc    Approve a service
+ * @access  Private (Admin)
+ */
+router.post(
+  '/:serviceId/approve',
+  authenticate,
+  requireAdmin,
+  validate([...serviceIdValidation, ...approveServiceValidation]),
+  serviceController.approveService
+);
+
+/**
+ * @route   POST /api/v1/services/:serviceId/reject
+ * @desc    Reject a service
+ * @access  Private (Admin)
+ */
+router.post(
+  '/:serviceId/reject',
+  authenticate,
+  requireAdmin,
+  validate([...serviceIdValidation, ...rejectServiceValidation]),
+  serviceController.rejectService
+);
+
+// ==================== PUBLIC ROUTES ====================
 
 /**
  * @route   GET /api/v1/services/trending

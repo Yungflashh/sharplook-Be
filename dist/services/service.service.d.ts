@@ -34,6 +34,7 @@ declare class ServiceService {
         rating?: number;
         search?: string;
         isActive?: boolean;
+        approvalStatus?: 'pending' | 'approved' | 'rejected';
         location?: {
             latitude: number;
             longitude: number;
@@ -73,6 +74,32 @@ declare class ServiceService {
         total: number;
         page: number;
         totalPages: number;
+    }>;
+    /**
+     * ADMIN: Approve a service
+     */
+    approveService(serviceId: string, adminId: string, notes?: string): Promise<IService>;
+    /**
+     * ADMIN: Reject a service
+     */
+    rejectService(serviceId: string, adminId: string, reason: string): Promise<IService>;
+    /**
+     * ADMIN: Get all pending services for approval
+     */
+    getPendingServices(page?: number, limit?: number): Promise<{
+        services: IService[];
+        total: number;
+        page: number;
+        totalPages: number;
+    }>;
+    /**
+     * ADMIN: Get service approval statistics
+     */
+    getApprovalStats(): Promise<{
+        pending: number;
+        approved: number;
+        rejected: number;
+        total: number;
     }>;
     /**
      * Add review to service

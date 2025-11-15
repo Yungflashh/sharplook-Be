@@ -30,4 +30,12 @@ export declare const respondToReviewValidation: import("express-validator").Vali
  * Review ID param validation
  */
 export declare const reviewIdValidation: import("express-validator").ValidationChain[];
+/**
+ * Approve service validation
+ */
+export declare const approveServiceValidation: import("express-validator").ValidationChain[];
+/**
+ * Reject service validation
+ */
+export declare const rejectServiceValidation: import("express-validator").ValidationChain[];
 //# sourceMappingURL=service.validation.d.ts.map

@@ -95,7 +95,7 @@ const serviceSchema = new mongoose_1.Schema({
     },
     isActive: {
         type: Boolean,
-        default: true,
+        default: false, // Changed: starts as inactive until approved
         index: true,
     },
     tags: {
@@ -137,6 +137,33 @@ const serviceSchema = new mongoose_1.Schema({
         averageRating: { type: Number, default: 0, min: 0, max: 5 },
         totalReviews: { type: Number, default: 0 },
     },
+    // Approval fields
+    approvalStatus: {
+        type: String,
+        enum: ['pending', 'approved', 'rejected'],
+        default: 'pending',
+        index: true,
+    },
+    approvedBy: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: 'User',
+    },
+    approvedAt: {
+        type: Date,
+    },
+    approvalNotes: {
+        type: String,
+    },
+    rejectedBy: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: 'User',
+    },
+    rejectedAt: {
+        type: Date,
+    },
+    rejectionReason: {
+        type: String,
+    },
     isDeleted: {
         type: Boolean,
         default: false,
@@ -156,6 +183,7 @@ serviceSchema.index({ basePrice: 1 });
 serviceSchema.index({ 'metadata.averageRating': -1 });
 serviceSchema.index({ 'metadata.bookings': -1 });
 serviceSchema.index({ createdAt: -1 });
+serviceSchema.index({ approvalStatus: 1, createdAt: 1 }); // For admin queries
 // Virtual for reviews
 serviceSchema.virtual('reviews', {
     ref: 'Review',
