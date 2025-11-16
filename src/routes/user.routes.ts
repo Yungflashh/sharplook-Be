@@ -19,6 +19,7 @@ import {
   getTopVendorsValidation,
   updateUserStatusValidation,
   userIdValidation,
+  getVendorDetailsValidation
 } from '../validations/user.validation';
 
 const router = Router();
@@ -187,6 +188,18 @@ router.post(
   requireAdmin,
   validate(userIdValidation),
   userController.verifyVendor
+);
+
+/**
+ * @route   GET /api/v1/users/vendors/:vendorId
+ * @desc    Get full vendor details (profile, services, reviews)
+ * @access  Public (with optional auth)
+ */
+router.get(
+  '/vendors/:vendorId',
+  optionalAuth,
+  validate(getVendorDetailsValidation),
+  userController.getVendorFullDetails
 );
 
 /**

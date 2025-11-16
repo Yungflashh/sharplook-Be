@@ -47,6 +47,11 @@ declare class UserController {
     getVendors: (req: import("express").Request, res: Response, next: NextFunction) => void;
     getTopVendors: (req: import("express").Request, res: Response, next: NextFunction) => void;
     /**
+   * Get full vendor details
+   * GET /api/v1/users/vendors/:vendorId
+   */
+    getVendorFullDetails: (req: import("express").Request, res: Response, next: NextFunction) => void;
+    /**
      * Get user by ID (admin)
      * GET /api/v1/users/:userId
      */

@@ -1,5 +1,6 @@
 import { body, param, query } from 'express-validator';
 import { VendorType, UserStatus, UserRole } from '../types';
+import mongoose from 'mongoose';
 
 /**
  * Update profile validation
@@ -192,6 +193,35 @@ export const getTopVendorsValidation = [
     .optional()
     .isFloat({ min: 0, max: 5 })
     .withMessage('Minimum rating must be between 0 and 5'),
+];
+
+
+/**
+ * Validation for getting vendor full details
+ */
+export const getVendorDetailsValidation = [
+  param('vendorId')
+    .trim()
+    .notEmpty()
+    .withMessage('Vendor ID is required')
+    .custom((value) => {
+      if (!mongoose.Types.ObjectId.isValid(value)) {
+        throw new Error('Invalid vendor ID format');
+      }
+      return true;
+    }),
+  query('includeServices')
+    .optional()
+    .isBoolean()
+    .withMessage('includeServices must be a boolean'),
+  query('includeReviews')
+    .optional()
+    .isBoolean()
+    .withMessage('includeReviews must be a boolean'),
+  query('reviewsLimit')
+    .optional()
+    .isInt({ min: 1, max: 100 })
+    .withMessage('reviewsLimit must be between 1 and 100'),
 ];
 
 /**

@@ -165,6 +165,32 @@ class UserController {
             });
         });
         /**
+       * Get full vendor details
+       * GET /api/v1/users/vendors/:vendorId
+       */
+        this.getVendorFullDetails = (0, error_1.asyncHandler)(async (req, res, _next) => {
+            const { vendorId } = req.params;
+            const includeServices = req.query.includeServices !== 'false';
+            const includeReviews = req.query.includeReviews !== 'false';
+            const reviewsLimit = parseInt(req.query.reviewsLimit) || 10;
+            const vendorDetails = await user_service_1.default.getVendorFullDetails(vendorId, {
+                includeServices,
+                includeReviews,
+                reviewsLimit,
+            });
+            // Remove sensitive data from vendor object
+            // if (vendorDetails.vendor.password?) {
+            //   delete vendorDetails.vendor.password;
+            // }
+            if (vendorDetails.vendor.refreshToken) {
+                delete vendorDetails.vendor.refreshToken;
+            }
+            if (vendorDetails.vendor.withdrawalPin) {
+                delete vendorDetails.vendor.withdrawalPin;
+            }
+            return response_1.default.success(res, 'Vendor details retrieved successfully', vendorDetails);
+        });
+        /**
          * Get user by ID (admin)
          * GET /api/v1/users/:userId
          */

@@ -288,6 +288,56 @@ class UserService {
         logger_1.default.info(`Retrieved ${vendors.length} top vendors`);
         return vendors;
     }
+    async getVendorFullDetails(vendorId, options) {
+        // Default options
+        const { includeServices = true, includeReviews = true, reviewsLimit = 10, } = options || {};
+        // Get vendor
+        const vendor = await User_1.default.findById(vendorId)
+            .populate('vendorProfile.categories', 'name icon slug description')
+            .lean();
+        if (!vendor) {
+            throw new errors_1.NotFoundError('Vendor not found');
+        }
+        if (!vendor.isVendor || !vendor.vendorProfile) {
+            throw new errors_1.BadRequestError('User is not a vendor');
+        }
+        // Initialize response
+        const response = {
+            vendor,
+            stats: {
+                totalServices: 0,
+                activeServices: 0,
+                totalReviews: vendor.vendorProfile.totalRatings || 0,
+                averageRating: vendor.vendorProfile.rating || 0,
+                completedBookings: vendor.vendorProfile.completedBookings || 0,
+                responseRate: 95, // You can calculate this based on your logic
+            },
+        };
+        // Fetch services if requested
+        if (includeServices) {
+            const Service = require('../models/Service').default;
+            const services = await Service.find({ vendor: vendorId })
+                .populate('category', 'name icon')
+                .sort({ createdAt: -1 })
+                .lean();
+            response.services = services;
+            response.stats.totalServices = services.length;
+            response.stats.activeServices = services.filter((s) => s.isActive !== false).length;
+        }
+        // Fetch reviews if requested
+        if (includeReviews) {
+            const Review = require('../models/Review').default;
+            const reviews = await Review.find({ vendor: vendorId })
+                .populate('user', 'firstName lastName avatar')
+                .populate('booking', 'bookingNumber')
+                .sort({ createdAt: -1 })
+                .limit(reviewsLimit)
+                .lean();
+            response.reviews = reviews;
+        }
+        logger_1.default.info(`Retrieved full details for vendor: ${vendorId}`);
+        return response;
+    }
     /**
      * Update user status (admin)
      */

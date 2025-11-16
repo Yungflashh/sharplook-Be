@@ -234,6 +234,45 @@ class UserController {
   }
 );
 
+
+
+  /**
+ * Get full vendor details
+ * GET /api/v1/users/vendors/:vendorId
+ */
+public getVendorFullDetails = asyncHandler(
+  async (req: AuthRequest, res: Response, _next: NextFunction) => {
+    const { vendorId } = req.params;
+    
+    const includeServices = req.query.includeServices !== 'false';
+    const includeReviews = req.query.includeReviews !== 'false';
+    const reviewsLimit = parseInt(req.query.reviewsLimit as string) || 10;
+
+    const vendorDetails = await userService.getVendorFullDetails(vendorId, {
+      includeServices,
+      includeReviews,
+      reviewsLimit,
+    });
+
+    // Remove sensitive data from vendor object
+    // if (vendorDetails.vendor.password?) {
+    //   delete vendorDetails.vendor.password;
+    // }
+    if (vendorDetails.vendor.refreshToken) {
+      delete vendorDetails.vendor.refreshToken;
+    }
+    if (vendorDetails.vendor.withdrawalPin) {
+      delete vendorDetails.vendor.withdrawalPin;
+    }
+
+    return ResponseHandler.success(
+      res,
+      'Vendor details retrieved successfully',
+      vendorDetails
+    );
+  }
+);
+
   /**
    * Get user by ID (admin)
    * GET /api/v1/users/:userId

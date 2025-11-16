@@ -109,6 +109,23 @@ declare class UserService {
         category?: string;
         minRating?: number;
     }): Promise<TopVendorResponse[]>;
+    getVendorFullDetails(vendorId: string, options?: {
+        includeServices?: boolean;
+        includeReviews?: boolean;
+        reviewsLimit?: number;
+    }): Promise<{
+        vendor: IUser;
+        services?: any[];
+        reviews?: any[];
+        stats: {
+            totalServices: number;
+            activeServices: number;
+            totalReviews: number;
+            averageRating: number;
+            completedBookings: number;
+            responseRate: number;
+        };
+    }>;
     /**
      * Update user status (admin)
      */

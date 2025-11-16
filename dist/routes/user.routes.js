@@ -95,6 +95,12 @@ router.put('/:userId/status', auth_1.authenticate, auth_1.requireAdmin, (0, vali
  */
 router.post('/:userId/verify-vendor', auth_1.authenticate, auth_1.requireAdmin, (0, validate_1.validate)(user_validation_1.userIdValidation), user_controller_1.default.verifyVendor);
 /**
+ * @route   GET /api/v1/users/vendors/:vendorId
+ * @desc    Get full vendor details (profile, services, reviews)
+ * @access  Public (with optional auth)
+ */
+router.get('/vendors/:vendorId', auth_1.optionalAuth, (0, validate_1.validate)(user_validation_1.getVendorDetailsValidation), user_controller_1.default.getVendorFullDetails);
+/**
  * @route   DELETE /api/v1/users/:userId
  * @desc    Soft delete user (admin)
  * @access  Private (Super Admin)

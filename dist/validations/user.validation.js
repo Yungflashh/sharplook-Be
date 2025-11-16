@@ -1,8 +1,12 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.userIdValidation = exports.updateUserStatusValidation = exports.getVendorsValidation = exports.getUsersValidation = exports.getTopVendorsValidation = exports.updateVendorProfileValidation = exports.becomeVendorValidation = exports.verifyWithdrawalPinValidation = exports.setWithdrawalPinValidation = exports.updatePreferencesValidation = exports.updateProfileValidation = void 0;
+exports.userIdValidation = exports.updateUserStatusValidation = exports.getVendorsValidation = exports.getUsersValidation = exports.getVendorDetailsValidation = exports.getTopVendorsValidation = exports.updateVendorProfileValidation = exports.becomeVendorValidation = exports.verifyWithdrawalPinValidation = exports.setWithdrawalPinValidation = exports.updatePreferencesValidation = exports.updateProfileValidation = void 0;
 const express_validator_1 = require("express-validator");
 const types_1 = require("../types");
+const mongoose_1 = __importDefault(require("mongoose"));
 /**
  * Update profile validation
  */
@@ -163,6 +167,33 @@ exports.getTopVendorsValidation = [
         .optional()
         .isFloat({ min: 0, max: 5 })
         .withMessage('Minimum rating must be between 0 and 5'),
+];
+/**
+ * Validation for getting vendor full details
+ */
+exports.getVendorDetailsValidation = [
+    (0, express_validator_1.param)('vendorId')
+        .trim()
+        .notEmpty()
+        .withMessage('Vendor ID is required')
+        .custom((value) => {
+        if (!mongoose_1.default.Types.ObjectId.isValid(value)) {
+            throw new Error('Invalid vendor ID format');
+        }
+        return true;
+    }),
+    (0, express_validator_1.query)('includeServices')
+        .optional()
+        .isBoolean()
+        .withMessage('includeServices must be a boolean'),
+    (0, express_validator_1.query)('includeReviews')
+        .optional()
+        .isBoolean()
+        .withMessage('includeReviews must be a boolean'),
+    (0, express_validator_1.query)('reviewsLimit')
+        .optional()
+        .isInt({ min: 1, max: 100 })
+        .withMessage('reviewsLimit must be between 1 and 100'),
 ];
 /**
  * Get users validation (admin)
