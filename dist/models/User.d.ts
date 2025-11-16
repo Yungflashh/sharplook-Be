@@ -105,6 +105,9 @@ export interface IUser extends Document {
     isAccountLocked(): boolean;
     incrementLoginAttempts(): Promise<void>;
     resetLoginAttempts(): Promise<void>;
+    isProfileComplete(): boolean;
+    getProfileCompletionPercentage(): number;
+    getMissingFields(): string[];
 }
 declare const User: Model<IUser>;
 export default User;

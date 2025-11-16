@@ -89,6 +89,9 @@ export interface IUser extends Document {
   isAccountLocked(): boolean;
   incrementLoginAttempts(): Promise<void>;
   resetLoginAttempts(): Promise<void>;
+  isProfileComplete(): boolean;
+  getProfileCompletionPercentage(): number;
+  getMissingFields(): string[];
 }
 
 const userSchema = new Schema<IUser>(
@@ -382,6 +385,105 @@ userSchema.methods.resetLoginAttempts = async function (): Promise<void> {
     $set: { loginAttempts: 0 },
     $unset: { lockUntil: 1 },
   });
+};
+
+// Method to check if profile is complete
+userSchema.methods.isProfileComplete = function (): boolean {
+  const basicFieldsComplete = !!(
+    this.firstName &&
+    this.lastName &&
+    this.email &&
+    this.phone &&
+    this.isEmailVerified &&
+    this.isPhoneVerified
+  );
+
+  // If user is a vendor, check vendor profile completion
+  if (this.isVendor) {
+    const vendorFieldsComplete = !!(
+      this.vendorProfile?.businessName &&
+      this.vendorProfile?.vendorType &&
+      this.vendorProfile?.location?.address &&
+      this.vendorProfile?.location?.city &&
+      this.vendorProfile?.location?.state &&
+      this.vendorProfile?.categories?.length
+    );
+    
+    return basicFieldsComplete && vendorFieldsComplete;
+  }
+
+  return basicFieldsComplete;
+};
+
+// Method to get profile completion percentage
+userSchema.methods.getProfileCompletionPercentage = function (): number {
+  let totalFields = 0;
+  let completedFields = 0;
+
+  // Basic fields (weighted)
+  const basicFields = [
+    { field: this.firstName, weight: 1 },
+    { field: this.lastName, weight: 1 },
+    { field: this.email, weight: 1 },
+    { field: this.phone, weight: 1 },
+    { field: this.isEmailVerified, weight: 2 },
+    { field: this.isPhoneVerified, weight: 2 },
+    { field: this.avatar, weight: 1 },
+  ];
+
+  basicFields.forEach(({ field, weight }) => {
+    totalFields += weight;
+    if (field) completedFields += weight;
+  });
+
+  // If vendor, add vendor-specific fields
+  if (this.isVendor) {
+    const vendorFields = [
+      { field: this.vendorProfile?.businessName, weight: 2 },
+      { field: this.vendorProfile?.businessDescription, weight: 1 },
+      { field: this.vendorProfile?.vendorType, weight: 2 },
+      { field: this.vendorProfile?.categories?.length, weight: 2 },
+      { field: this.vendorProfile?.location?.address, weight: 1 },
+      { field: this.vendorProfile?.location?.city, weight: 1 },
+      { field: this.vendorProfile?.location?.state, weight: 1 },
+      { field: this.vendorProfile?.documents?.idCard, weight: 2 },
+      { field: this.vendorProfile?.isVerified, weight: 2 },
+    ];
+
+    vendorFields.forEach(({ field, weight }) => {
+      totalFields += weight;
+      if (field) completedFields += weight;
+    });
+  }
+
+  return Math.round((completedFields / totalFields) * 100);
+};
+
+// Method to get missing fields
+userSchema.methods.getMissingFields = function (): string[] {
+  const missing: string[] = [];
+
+  if (!this.firstName) missing.push('firstName');
+  if (!this.lastName) missing.push('lastName');
+  if (!this.email) missing.push('email');
+  if (!this.phone) missing.push('phone');
+  if (!this.isEmailVerified) missing.push('emailVerification');
+  if (!this.isPhoneVerified) missing.push('phoneVerification');
+  if (!this.avatar) missing.push('avatar');
+
+  if (this.isVendor) {
+    if (!this.vendorProfile?.businessName) missing.push('businessName');
+    if (!this.vendorProfile?.businessDescription) missing.push('businessDescription');
+    if (!this.vendorProfile?.vendorType) missing.push('vendorType');
+    if (!this.vendorProfile?.categories?.length) missing.push('categories');
+    if (!this.vendorProfile?.location?.address) missing.push('address');
+    if (!this.vendorProfile?.location?.city) missing.push('city');
+    if (!this.vendorProfile?.location?.state) missing.push('state');
+    if (!this.vendorProfile?.documents?.idCard) missing.push('idCard');
+    if (!this.vendorProfile?.isVerified) missing.push('verification');
+  }
+
+  return missing;
 };
 
 // Virtual for full name

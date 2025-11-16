@@ -55,7 +55,7 @@ class PaymentService {
             amount: booking.totalAmount * 100, // Convert to kobo
             reference,
             currency: 'NGN',
-            callback_url: `${config_1.default.urls.frontend}/bookings/${bookingId}/payment/verify`,
+            callback_url: `sharpLook://bookings/${bookingId}/payment/verify`,
             metadata: {
                 bookingId: booking._id.toString(),
                 userId: user._id.toString(),
